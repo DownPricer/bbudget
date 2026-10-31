@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+.env
+.env.*
+!.env.example
+backups
+uploads
+public/uploads
+coverage
+.vscode
+.idea
+agent-transcripts
+*.log

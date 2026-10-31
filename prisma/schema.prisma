@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  passwordHash         String
+  firstName            String
+  createdAt            DateTime @default(now())
+  /// Jour de début du mois budgétaire (1–28)
+  budgetMonthStartDay  Int      @default(1)
+  /// Répartition plaisirs / épargne / dettes bonus (en %)
+  pleasurePercent      Int      @default(60)
+  savingsPercent       Int      @default(25)
+  debtBonusPercent     Int      @default(15)
+  onboardingCompleted  Boolean  @default(false)
+  /// Solde de départ du compte (peut être négatif = découvert)
+  openingBalance       Decimal  @default(0) @db.Decimal(12, 2)
+  /// Date/heure de référence du solde de départ
+  openingBalanceAt     DateTime @default(now())
+
+  incomes       Income[]
+  expenses      Expense[]
+  envelopes     Envelope[]
+  subscriptions Subscription[]
+  debts         Debt[]
+  savingsGoals  SavingsGoal[]
+  wishItems     WishItem[]
+  challenges    Challenge[]
+}
+
+enum IncomeType {
+  BOURSE
+  JOB
+  CADEAU
+  REMBOURSEMENT_RECU
+  AUTRE
+}
+
+model Income {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Decimal    @db.Decimal(12, 2)
+  label     String
+  type      IncomeType @default(AUTRE)
+  date      DateTime
+  recurring Boolean    @default(false)
+  /// Mois de versement pour une bourse récurrente (1–12), null = tous les mois
+  months    Int[]      @default([])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId, date])
+}
+
+enum EnvelopeType {
+  FIXE
+  PLAISIR
+}
+
+model Envelope {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  emoji         String       @default("🛍️")
+  color         String       @default("#F8C8DC")
+  monthlyAmount Decimal      @db.Decimal(12, 2)
+  type          EnvelopeType @default(PLAISIR)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  expenses  Expense[]
+  wishItems WishItem[]
+
+  @@index([userId, sortOrder])
+}
+
+model Expense {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount     Decimal   @db.Decimal(12, 2)
+  label      String
+  date       DateTime
+  note       String?
+  envelopeId String
+  envelope   Envelope  @relation(fields: [envelopeId], references: [id], onDelete: Restrict)
+  wishItemId String?   @unique
+  wishItem   WishItem? @relation(fields: [wishItemId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, date])
+  @@index([envelopeId])
+}
+
+enum BillingFrequency {
+  MENSUEL
+  ANNUEL
+  HEBDO
+}
+
+enum SubscriptionStatus {
+  ACTIF
+  A_RESILIER
+  RESILIE
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  amount          Decimal            @db.Decimal(12, 2)
+  frequency       BillingFrequency   @default(MENSUEL)
+  billingDay      Int                @default(1)
+  category        String             @default("Divers")
+  status          SubscriptionStatus @default(ACTIF)
+  cancelledAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([userId, status])
+}
+
+model Debt {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditor         String
+  initialAmount    Decimal   @db.Decimal(12, 2)
+  remainingAmount  Decimal   @db.Decimal(12, 2)
+  monthlyPayment   Decimal?  @db.Decimal(12, 2)
+  dueDate          DateTime?
+  note             String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  payments DebtPayment[]
+
+  @@index([userId])
+}
+
+model DebtPayment {
+  id        String   @id @default(cuid())
+  debtId    String
+  debt      Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(12, 2)
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@index([debtId, date])
+}
+
+model SavingsGoal {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  emoji         String    @default("🎯")
+  targetAmount  Decimal   @db.Decimal(12, 2)
+  currentAmount Decimal   @default(0) @db.Decimal(12, 2)
+  targetDate    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  deposits SavingsDeposit[]
+
+  @@index([userId])
+}
+
+model SavingsDeposit {
+  id        String      @id @default(cuid())
+  goalId    String
+  goal      SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  amount    Decimal     @db.Decimal(12, 2)
+  date      DateTime
+  createdAt DateTime    @default(now())
+
+  @@index([goalId, date])
+}
+
+enum WishStatus {
+  EN_ATTENTE
+  ACHETE
+  ABANDONNE
+}
+
+model WishItem {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  price        Decimal    @db.Decimal(12, 2)
+  link         String?
+  photoUrl     String?
+  envelopeId   String?
+  envelope     Envelope?  @relation(fields: [envelopeId], references: [id], onDelete: SetNull)
+  addedAt      DateTime   @default(now())
+  status       WishStatus @default(EN_ATTENTE)
+  decidedAt    DateTime?
+  expense      Expense?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([userId, status])
+}
+
+enum ChallengeStatus {
+  ACTIF
+  TERMINE
+  ABANDONNE
+}
+
+model Challenge {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  durationDays Int
+  startedAt   DateTime?
+  status      ChallengeStatus @default(ACTIF)
+  /// Jours complétés (bits ou compteur selon la logique métier)
+  progressDays Int            @default(0)
+  completedAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([userId, status])
+}

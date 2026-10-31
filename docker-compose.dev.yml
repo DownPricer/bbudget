@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bbudget-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bbudget
+      POSTGRES_PASSWORD: bbudget
+      POSTGRES_DB: bbudget
+    ports:
+      - "5432:5432"
+    volumes:
+      - bbudget_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bbudget -d bbudget"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  bbudget_pg_data:

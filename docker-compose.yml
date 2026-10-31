@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bbudget-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bbudget}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bbudget}
+      POSTGRES_DB: ${POSTGRES_DB:-bbudget}
+    volumes:
+      - bbudget_pg_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bbudget} -d ${POSTGRES_DB:-bbudget}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - bbudget
+
+  app:
+    build: .
+    container_name: bbudget-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bbudget}:${POSTGRES_PASSWORD:-bbudget}@db:5432/${POSTGRES_DB:-bbudget}?schema=public
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL}
+      AUTH_TRUST_HOST: "true"
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
+      ALLOW_SEED: "false"
+      NODE_ENV: production
+    volumes:
+      - bbudget_uploads:/app/public/uploads
+    expose:
+      - "3000"
+    networks:
+      - bbudget
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: bbudget-caddy
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - bbudget
+
+volumes:
+  bbudget_pg_data:
+  bbudget_uploads:
+  caddy_data:
+  caddy_config:
+
+networks:
+  bbudget:
+    driver: bridge

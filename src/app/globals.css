@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #fff9f8;
+  --ink: #30283d;
+  --muted: #988a9b;
+  --line: #f1e7eb;
+  --pink: #dd7099;
+  --pale: #ffedf4;
+  --lav: #d9c1ec;
+  --mint: #a9d9cb;
+  --mint-btn: #79bda9;
+  --hero: #30283d;
+  --peach-gauge: #f5c6aa;
+
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --border: var(--line);
+  --primary: var(--pink);
+  --primary-foreground: #ffffff;
+  --ring: var(--pink);
+
+  /* aliases legacy used elsewhere */
+  --rose: var(--pink);
+  --rose-soft: var(--pale);
+  --rose-deep: #bd5b83;
+  --lavande: var(--lav);
+  --menthe: var(--mint);
+  --peche: #ffe5b4;
+  --cream: var(--bg);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  --tab-bar-height: 77px;
+  --app-max: 430px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-pink: var(--pink);
+  --color-pale: var(--pale);
+  --color-lav: var(--lav);
+  --color-mint: var(--mint);
+  --color-mint-btn: var(--mint-btn);
+  --color-hero: var(--hero);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-rose: var(--rose);
+  --color-rose-soft: var(--rose-soft);
+  --color-rose-deep: var(--rose-deep);
+  --color-lavande: var(--lavande);
+  --color-peche: var(--peche);
+  --color-menthe: var(--menthe);
+  --color-cream: var(--cream);
+  --color-peach-gauge: var(--peach-gauge);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  height: 100dvh;
+}
+
+body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  margin: 0;
+  background: #e9e1e8;
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.scroll-area {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  font-size: 16px;
+}
+
+::selection {
+  background: var(--pale);
+  color: var(--rose-deep);
+}
+
+@media (min-width: 650px) {
+  body {
+    padding: 22px 0;
+  }
+}
