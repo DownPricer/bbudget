@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { TabBar } from "@/components/layout/tab-bar";
 import { QuickAddProvider } from "@/components/quick-add/quick-add-provider";
 import { InstallBanner } from "@/components/pwa/install-banner";
+import { syncDueInstallmentExpenses } from "@/lib/budget/sync-installments";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -15,6 +16,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (dbUser && !dbUser.onboardingCompleted) {
     redirect("/onboarding");
   }
+
+  await syncDueInstallmentExpenses(user.id);
 
   const envelopes = await prisma.envelope.findMany({
     where: { userId: user.id, type: "PLAISIR" },

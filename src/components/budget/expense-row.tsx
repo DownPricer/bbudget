@@ -12,6 +12,7 @@ type ExpenseRowProps = {
   envelopeId: string;
   envelopeEmoji: string;
   envelopeName: string;
+  installmentBadge?: string | null;
 };
 
 export function ExpenseRow({
@@ -22,6 +23,7 @@ export function ExpenseRow({
   envelopeId,
   envelopeEmoji,
   envelopeName,
+  installmentBadge,
 }: ExpenseRowProps) {
   const { openExpenseEdit } = useQuickAdd();
 
@@ -36,6 +38,7 @@ export function ExpenseRow({
       <ListRow
         icon={envelopeEmoji}
         title={label}
+        badge={installmentBadge ?? undefined}
         subtitle={`${envelopeName} · ${formatDateFr(date)}`}
         value={formatEuro(amount)}
       />

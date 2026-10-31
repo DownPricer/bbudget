@@ -2,6 +2,7 @@
  * Cœur du calcul budgétaire — fonctions pures, testables sans DB.
  */
 
+import { sumUpcomingInstallmentsInPeriod } from "./installments";
 import { monthlySubscriptionAmount } from "./subscriptions";
 
 export type AllocationSettings = {
@@ -65,6 +66,12 @@ export type DebtChargeInput = {
   paidInPeriod: boolean;
 };
 
+export type InstallmentChargeInput = {
+  status: string;
+  amount: number;
+  dueDate: Date;
+};
+
 export type SpendableDashboardInput = {
   openingBalance: number;
   incomesSinceOpening: number;
@@ -75,6 +82,8 @@ export type SpendableDashboardInput = {
   periodEnd: Date;
   subscriptions: SubscriptionChargeInput[];
   debts: DebtChargeInput[];
+  /** Échéances A_VENIR des plans EN_COURS */
+  installmentPayments?: InstallmentChargeInput[];
   envelopes: EnvelopeSnapshot[];
   incomesTotal: number;
   allocation: AllocationSettings;
@@ -152,6 +161,7 @@ export function calculateUpcomingWithdrawals(input: {
   periodEnd: Date;
   subscriptions: SubscriptionChargeInput[];
   debts: DebtChargeInput[];
+  installmentPayments?: InstallmentChargeInput[];
 }): number {
   let total = 0;
 
@@ -177,6 +187,12 @@ export function calculateUpcomingWithdrawals(input: {
     if (d.paidInPeriod) continue;
     total += Math.min(d.monthlyPayment, d.remainingAmount);
   }
+
+  total += sumUpcomingInstallmentsInPeriod(
+    input.installmentPayments ?? [],
+    input.periodStart,
+    input.periodEnd,
+  );
 
   return round2(total);
 }
@@ -217,6 +233,7 @@ export function calculateSpendableDashboard(
     periodEnd: input.periodEnd,
     subscriptions: input.subscriptions,
     debts: input.debts,
+    installmentPayments: input.installmentPayments,
   });
 
   const freeMoney = round2(currentBalance - upcomingWithdrawals);

@@ -32,13 +32,59 @@ export default async function AccueilPage() {
     orderBy: { billingDay: "asc" },
   });
 
-  const upcoming = subscriptions
+  const today = new Date();
+  const in7 = new Date(today);
+  in7.setDate(today.getDate() + 7);
+  in7.setHours(23, 59, 59, 999);
+
+  const installmentDues = await prisma.installmentPayment.findMany({
+    where: {
+      status: "A_VENIR",
+      dueDate: { gte: today, lte: in7 },
+      plan: { userId: user.id, status: "EN_COURS" },
+    },
+    include: {
+      plan: { select: { name: true, installmentCount: true } },
+    },
+    orderBy: { dueDate: "asc" },
+  });
+
+  type UpcomingItem = {
+    key: string;
+    title: string;
+    subtitle: string;
+    amount: number;
+    date: Date;
+    icon: string;
+  };
+
+  const upcomingSubs: UpcomingItem[] = subscriptions
     .map((s) => {
-      const date = upcomingBillingDays(s.billingDay);
-      return date ? { ...s, nextDate: date } : null;
+      const date = upcomingBillingDays(s.billingDay, 7);
+      if (!date) return null;
+      return {
+        key: `sub-${s.id}`,
+        title: s.name,
+        subtitle: date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" }),
+        amount: toNumber(s.amount),
+        date,
+        icon: "▣",
+      };
     })
-    .filter(Boolean)
-    .slice(0, 3) as Array<(typeof subscriptions)[number] & { nextDate: Date }>;
+    .filter(Boolean) as UpcomingItem[];
+
+  const upcomingInst: UpcomingItem[] = installmentDues.map((p) => ({
+    key: `inst-${p.id}`,
+    title: p.plan.name,
+    subtitle: `Échéance ${p.index}/${p.plan.installmentCount} · ${p.dueDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`,
+    amount: toNumber(p.amount),
+    date: p.dueDate,
+    icon: "▦",
+  }));
+
+  const upcoming = [...upcomingSubs, ...upcomingInst]
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, 5);
 
   return (
     <div className="pb-2">
@@ -79,17 +125,14 @@ export default async function AccueilPage() {
 
       {upcoming.length > 0 ? (
         <section className="mt-6">
-          <h2 className="mb-3 text-base font-bold text-ink">À venir</h2>
+          <h2 className="mb-3 text-base font-bold text-ink">Prochains prélèvements</h2>
           {upcoming.map((s) => (
             <ListRow
-              key={s.id}
-              icon="▣"
-              title={s.name}
-              subtitle={s.nextDate.toLocaleDateString("fr-FR", {
-                day: "numeric",
-                month: "long",
-              })}
-              value={formatEuro(toNumber(s.amount))}
+              key={s.key}
+              icon={s.icon}
+              title={s.title}
+              subtitle={s.subtitle}
+              value={formatEuro(s.amount)}
             />
           ))}
         </section>

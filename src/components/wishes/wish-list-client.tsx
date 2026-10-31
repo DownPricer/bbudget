@@ -8,6 +8,7 @@ import { HeroDark } from "@/components/ui/hero-dark";
 import { Input } from "@/components/ui/input";
 import { ListRow } from "@/components/ui/list-row";
 import { StatTile } from "@/components/ui/stat-tile";
+import { useQuickAdd } from "@/components/quick-add/quick-add-provider";
 import { createWishItem, decideWishItem } from "@/app/actions/wishes";
 import {
   formatCountdown,
@@ -43,8 +44,10 @@ export function WishListClient({
   savedTotal: number;
 }) {
   const router = useRouter();
+  const { openInstallmentPlan } = useQuickAdd();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
+  const [buyWish, setBuyWish] = useState<Wish | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [link, setLink] = useState("");
@@ -106,22 +109,7 @@ export function WishListClient({
                     ) : null}
                     {ready ? (
                       <div className="mt-3 flex flex-col gap-2">
-                        <Button
-                          disabled={pending}
-                          onClick={() =>
-                            startTransition(async () => {
-                              const r = await decideWishItem({
-                                id: w.id,
-                                decision: "ACHETE",
-                              });
-                              if (!r.ok) setMsg(r.error);
-                              else {
-                                setMsg("Achat enregistré");
-                                router.refresh();
-                              }
-                            })
-                          }
-                        >
+                        <Button disabled={pending} onClick={() => setBuyWish(w)}>
                           Acheté
                         </Button>
                         <Button
@@ -174,6 +162,57 @@ export function WishListClient({
           ))}
         </section>
       ) : null}
+
+      <BottomSheet
+        open={!!buyWish}
+        onClose={() => setBuyWish(null)}
+        title="Comment payer ?"
+      >
+        {buyWish ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted">
+              {buyWish.name} · {formatEuro(buyWish.price)}
+            </p>
+            <Button
+              size="lg"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await decideWishItem({
+                    id: buyWish.id,
+                    decision: "ACHETE",
+                  });
+                  if (!r.ok) setMsg(r.error);
+                  else {
+                    setMsg("Achat enregistré");
+                    setBuyWish(null);
+                    router.refresh();
+                  }
+                })
+              }
+            >
+              Payé en une fois
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={pending}
+              onClick={() => {
+                const w = buyWish;
+                setBuyWish(null);
+                openInstallmentPlan({
+                  name: w.name,
+                  totalAmount: String(w.price).replace(".", ","),
+                  envelopeId: w.envelopeId ?? undefined,
+                  wishItemId: w.id,
+                });
+              }}
+            >
+              En plusieurs fois
+            </Button>
+          </div>
+        ) : null}
+      </BottomSheet>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title="Nouveau coup de cœur">
         <form

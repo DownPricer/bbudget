@@ -6,11 +6,20 @@ type ListRowProps = {
   title: string;
   subtitle?: string;
   value?: ReactNode;
+  badge?: string;
   footer?: ReactNode;
   className?: string;
 };
 
-export function ListRow({ icon, title, subtitle, value, footer, className }: ListRowProps) {
+export function ListRow({
+  icon,
+  title,
+  subtitle,
+  value,
+  badge,
+  footer,
+  className,
+}: ListRowProps) {
   return (
     <div
       className={cn(
@@ -25,7 +34,14 @@ export function ListRow({ icon, title, subtitle, value, footer, className }: Lis
           </div>
         ) : null}
         <div className="min-w-0 flex-1">
-          <p className="block text-[13px] font-bold text-ink">{title}</p>
+          <div className="flex items-center gap-2">
+            <p className="block text-[13px] font-bold text-ink">{title}</p>
+            {badge ? (
+              <span className="shrink-0 rounded-full bg-pale px-2 py-0.5 text-[10px] font-bold text-[#bd5b83]">
+                {badge}
+              </span>
+            ) : null}
+          </div>
           {subtitle ? (
             <p className="mt-0.5 block text-[11px] text-muted">{subtitle}</p>
           ) : null}

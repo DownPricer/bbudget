@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toNumber } from "@/lib/utils";
 import {
@@ -6,6 +7,10 @@ import {
   type BudgetSummary,
   type EnvelopeSnapshot,
 } from "@/lib/budget";
+import {
+  listActiveInstallmentCharges,
+  syncDueInstallmentExpenses,
+} from "@/lib/budget/sync-installments";
 
 export async function getUserBudgetSettings(userId: string) {
   const user = await prisma.user.findFirst({
@@ -20,7 +25,10 @@ export async function getUserBudgetSettings(userId: string) {
       openingBalanceAt: true,
     },
   });
-  if (!user) throw new Error("UNAUTHORIZED");
+  if (!user) {
+    // Session JWT orpheline (mauvaise DB / user supprimé) → reconnexion
+    redirect("/connexion");
+  }
   return user;
 }
 
@@ -59,12 +67,21 @@ export async function getDashboardBudget(
   firstName: string;
   hasIncome: boolean;
 }> {
+  await syncDueInstallmentExpenses(userId, referenceDate);
+
   const settings = await getUserBudgetSettings(userId);
   const period = getBudgetPeriod(referenceDate, settings.budgetMonthStartDay);
   const openingAt = settings.openingBalanceAt;
 
-  const [incomesPeriod, expensesPeriod, flowsSinceOpening, envelopes, subscriptions, debts] =
-    await Promise.all([
+  const [
+    incomesPeriod,
+    expensesPeriod,
+    flowsSinceOpening,
+    envelopes,
+    subscriptions,
+    debts,
+    installmentPayments,
+  ] = await Promise.all([
       prisma.income.findMany({
         where: {
           userId,
@@ -110,6 +127,7 @@ export async function getDashboardBudget(
           },
         },
       }),
+      listActiveInstallmentCharges(userId),
     ]);
 
   const [incomeSinceAgg, expenseSinceAgg] = flowsSinceOpening;
@@ -152,6 +170,7 @@ export async function getDashboardBudget(
       remainingAmount: toNumber(d.remainingAmount),
       paidInPeriod: d.payments.length > 0,
     })),
+    installmentPayments,
     envelopes: envelopeSnapshots,
     incomesTotal,
     allocation: {

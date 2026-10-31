@@ -41,6 +41,7 @@ type QuickAddSheetProps = {
   initialMode?: Mode;
   editExpense?: EditExpense | null;
   editIncome?: EditIncome | null;
+  onOpenInstallment?: () => void;
 };
 
 const INCOME_TYPES = [
@@ -85,6 +86,7 @@ export function QuickAddSheet({
   initialMode = "depense",
   editExpense = null,
   editIncome = null,
+  onOpenInstallment,
 }: QuickAddSheetProps) {
   const router = useRouter();
   const isEdit = !!(editExpense || editIncome);
@@ -256,26 +258,37 @@ export function QuickAddSheet({
         </div>
 
         {mode === "depense" ? (
-          <div>
-            <p className="mb-2 text-xs font-bold text-[#746979]">Enveloppe</p>
-            <div className="flex flex-wrap gap-2">
-              {envelopes.map((env) => (
-                <button
-                  key={env.id}
-                  type="button"
-                  onClick={() => setEnvelopeId(env.id)}
-                  className={cn(
-                    "touch-target inline-flex h-11 min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-bold",
-                    envelopeId === env.id
-                      ? "border-[#e9abc3] bg-pale text-[#bd5b83]"
-                      : "border-line bg-white text-ink",
-                  )}
-                >
-                  <span aria-hidden>{env.emoji}</span>
-                  {env.name}
-                </button>
-              ))}
+          <div className="space-y-3">
+            <div>
+              <p className="mb-2 text-xs font-bold text-[#746979]">Enveloppe</p>
+              <div className="flex flex-wrap gap-2">
+                {envelopes.map((env) => (
+                  <button
+                    key={env.id}
+                    type="button"
+                    onClick={() => setEnvelopeId(env.id)}
+                    className={cn(
+                      "touch-target inline-flex h-11 min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-bold",
+                      envelopeId === env.id
+                        ? "border-[#e9abc3] bg-pale text-[#bd5b83]"
+                        : "border-line bg-white text-ink",
+                    )}
+                  >
+                    <span aria-hidden>{env.emoji}</span>
+                    {env.name}
+                  </button>
+                ))}
+              </div>
             </div>
+            {!isEdit && onOpenInstallment ? (
+              <button
+                type="button"
+                onClick={onOpenInstallment}
+                className="touch-target flex min-h-11 w-full items-center justify-center rounded-[14px] border border-dashed border-[#ddcedb] bg-white px-4 text-sm font-bold text-[#8d637e]"
+              >
+                Payé en plusieurs fois
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className="space-y-3">

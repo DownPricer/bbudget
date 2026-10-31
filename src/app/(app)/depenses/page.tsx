@@ -40,7 +40,15 @@ export default async function DepensesPage({
       date: { gte: period.start, lte: period.end },
       ...(envelopeFilter ? { envelopeId: envelopeFilter } : {}),
     },
-    include: { envelope: { select: { name: true, emoji: true } } },
+    include: {
+      envelope: { select: { name: true, emoji: true } },
+      installmentPayment: {
+        select: {
+          index: true,
+          plan: { select: { installmentCount: true } },
+        },
+      },
+    },
     orderBy: { date: "desc" },
   });
 
@@ -80,6 +88,11 @@ export default async function DepensesPage({
                 envelopeId={e.envelopeId}
                 envelopeEmoji={e.envelope.emoji}
                 envelopeName={e.envelope.name}
+                installmentBadge={
+                  e.installmentPayment
+                    ? `${e.installmentPayment.index}/${e.installmentPayment.plan.installmentCount}`
+                    : null
+                }
               />
             </li>
           ))}
