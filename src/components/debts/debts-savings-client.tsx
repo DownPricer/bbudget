@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ListRow } from "@/components/ui/list-row";
 import { ProgressTrack } from "@/components/ui/progress-track";
 import { StatTile } from "@/components/ui/stat-tile";
-import { addDebtPayment, createDebt } from "@/app/actions/debts";
+import { addDebtPayment, createDebt, deleteDebt } from "@/app/actions/debts";
 import { addSavingsDeposit, createSavingsGoal } from "@/app/actions/savings";
 import { debtProgress } from "@/lib/budget/debts";
 import { formatEuro } from "@/lib/utils";
@@ -45,6 +45,7 @@ export function DebtsSavingsClient({
   const [creditor, setCreditor] = useState("");
   const [goalName, setGoalName] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const totalDebt = debts.reduce((s, d) => s + d.remainingAmount, 0);
   const totalSaved = goals.reduce((s, g) => s + g.currentAmount, 0);
@@ -54,6 +55,7 @@ export function DebtsSavingsClient({
     setAmount("");
     setCreditor("");
     setGoalName("");
+    setDeleteConfirmId(null);
   }
 
   return (
@@ -86,15 +88,60 @@ export function DebtsSavingsClient({
                 footer={
                   <>
                     <ProgressTrack progress={paidRatio} color="var(--lav)" />
-                    <Button
-                      type="button"
-                      size="lg"
-                      className="mt-3"
-                      disabled={pending}
-                      onClick={() => setSheet({ type: "repay", debtId: d.id })}
-                    >
-                      Rembourser
-                    </Button>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        size="lg"
+                        disabled={pending}
+                        onClick={() => setSheet({ type: "repay", debtId: d.id })}
+                      >
+                        Rembourser
+                      </Button>
+                      {deleteConfirmId === d.id ? (
+                        <div className="flex flex-col gap-2">
+                          <p className="text-[11px] text-muted">
+                            Supprimer cette dette et son historique de paiements ?
+                          </p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={pending}
+                            className="text-[#C9956C]"
+                            onClick={() =>
+                              startTransition(async () => {
+                                setMsg(null);
+                                const r = await deleteDebt(d.id);
+                                if (!r.ok) {
+                                  setMsg(r.error);
+                                  return;
+                                }
+                                setDeleteConfirmId(null);
+                                router.refresh();
+                              })
+                            }
+                          >
+                            Confirmer la suppression
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={pending}
+                            onClick={() => setDeleteConfirmId(null)}
+                          >
+                            Annuler
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={pending}
+                          onClick={() => setDeleteConfirmId(d.id)}
+                        >
+                          Supprimer
+                        </Button>
+                      )}
+                    </div>
                   </>
                 }
               />
